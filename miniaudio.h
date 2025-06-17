@@ -11265,6 +11265,7 @@ typedef struct
     ma_allocation_callbacks allocationCallbacks;
     ma_bool32 noAutoStart;                          /* When set to true, requires an explicit call to ma_engine_start(). This is false by default, meaning the engine will be started automatically in ma_engine_init(). */
     ma_bool32 noDevice;                             /* When set to true, don't create a default device. ma_engine_read_pcm_frames() can be called manually to read data. */
+    ma_bool32 nullDevice;                           /* When set to true, prefer the null device. */
     ma_mono_expansion_mode monoExpansionMode;       /* Controls how the mono channel should be expanded to other channels when spatialization is disabled on a sound. */
     ma_vfs* pResourceManagerVFS;                    /* A pointer to a pre-allocated VFS object to use with the resource manager. This is ignored if pResourceManager is not NULL. */
     ma_engine_process_proc onProcess;               /* Fired at the end of each call to ma_engine_read_pcm_frames(). For engine's that manage their own internal device (the default configuration), this will be fired from the audio thread, and you do not need to call ma_engine_read_pcm_frames() manually in order to trigger this. */
@@ -75796,6 +75797,7 @@ MA_API ma_result ma_engine_init(const ma_engine_config* pConfig, ma_engine* pEng
             deviceConfig.noClip                    = MA_TRUE;    /* The engine will do clipping itself. */
 
             if (engineConfig.pContext == NULL) {
+                const ma_backend backend_null[] = { ma_backend_null };
                 ma_context_config contextConfig = ma_context_config_init();
                 contextConfig.allocationCallbacks = pEngine->allocationCallbacks;
                 contextConfig.pLog = engineConfig.pLog;
@@ -75809,7 +75811,10 @@ MA_API ma_result ma_engine_init(const ma_engine_config* pConfig, ma_engine* pEng
                 }
                 #endif
 
-                result = ma_device_init_ex(NULL, 0, &contextConfig, &deviceConfig, pEngine->pDevice);
+                result = ma_device_init_ex(
+                    engineConfig.nullDevice ? backend_null : NULL,
+                    engineConfig.nullDevice ? 1 : 0,
+                    &contextConfig, &deviceConfig, pEngine->pDevice);
             } else {
                 result = ma_device_init(engineConfig.pContext, &deviceConfig, pEngine->pDevice);
             }
